@@ -7,7 +7,7 @@ public sealed class JsonlFile<T>
 {
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private readonly JsonSerializerOptions _json;
 
     public JsonlFile(string path, JsonSerializerOptions? json = null)

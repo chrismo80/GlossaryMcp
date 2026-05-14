@@ -9,7 +9,7 @@ public sealed record EditTermResponse(
     ErrorInfo? Error = null);
 
 [McpServerToolType]
-public sealed class EditTermTool(GlossaryStore glossaryStore) : Tool
+public sealed class EditTermTool(GlossaryStore glossaryStore)
 {
     [McpServerTool(Name = "edit", Title = "Edit", ReadOnly = false, Idempotent = false)]
     [Description("Replace the full description text for an existing term and rewrite the lexicon file.")]

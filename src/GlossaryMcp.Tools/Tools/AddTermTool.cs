@@ -10,7 +10,7 @@ public sealed record AddTermResponse(
     ErrorInfo? Error = null);
 
 [McpServerToolType]
-public sealed class AddTermTool(GlossaryStore glossaryStore) : Tool
+public sealed class AddTermTool(GlossaryStore glossaryStore)
 {
     [McpServerTool(Name = "add", Title = "Add", ReadOnly = false, Idempotent = false)]
     [Description("Append one domain term with its description to the lexicon file and in-memory store.")]
