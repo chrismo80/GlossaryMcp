@@ -1,4 +1,3 @@
-using System.Text;
 using GlossaryMcp.Tools.Storage;
 
 namespace GlossaryMcp.Tools.Glossary;
@@ -44,7 +43,7 @@ public sealed class GlossaryStore
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var key = Normalize(term);
+        var key = term.NormalizeGlossary();
 
         lock (_sync)
             return _byNormalizedTerm.TryGetValue(key, out entry);
@@ -65,7 +64,7 @@ public sealed class GlossaryStore
         if (description.Length == 0)
             return AddTermResult.AsError("invalid description");
 
-        var key = Normalize(term);
+        var key = term.NormalizeGlossary();
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_sync)
@@ -98,7 +97,7 @@ public sealed class GlossaryStore
         if (description.Length == 0)
             return EditTermResult.AsError("invalid description");
 
-        var key = Normalize(term);
+        var key = term.NormalizeGlossary();
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_sync)
@@ -131,44 +130,11 @@ public sealed class GlossaryStore
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (maxResults <= 0)
-            return [];
-
-        var normalizedQuery = Normalize(query);
-        if (normalizedQuery.Length == 0)
-            return [];
-
-        var tokens = Tokenize(query);
-
         GlossaryEntry[] snapshot;
         lock (_sync)
             snapshot = _entries.ToArray();
 
-        var matches = new List<GlossaryMatch>();
-
-        foreach (var entry in snapshot)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var normalizedTerm = Normalize(entry.Term);
-            var normalizedDescription = Normalize(entry.Description);
-
-            var score = 0;
-            var matchCount = 0;
-
-            ApplyFullQueryRules(ref score, ref matchCount, normalizedTerm, normalizedDescription, normalizedQuery);
-            ApplyTokenRules(ref score, ref matchCount, normalizedTerm, normalizedDescription, tokens);
-
-            if (score > 0)
-                matches.Add(new GlossaryMatch(entry, score + matchCount));
-        }
-
-        return matches
-            .OrderByDescending(x => x.Score)
-            .ThenBy(x => x.Entry.Term.Length)
-            .ThenBy(x => x.Entry.Term, StringComparer.OrdinalIgnoreCase)
-            .Take(maxResults)
-            .ToArray();
+        return snapshot.FindMatches(query, maxResults, cancellationToken);
     }
 
     private void ReplaceState(IReadOnlyList<GlossaryEntry> entries)
@@ -180,7 +146,7 @@ public sealed class GlossaryStore
         {
             Validate(entry);
 
-            var key = Normalize(entry.Term);
+            var key = entry.Term.NormalizeGlossary();
             if (!newByNormalizedTerm.TryAdd(key, entry))
                 throw new InvalidDataException($"Duplicate term '{entry.Term}'.");
 
@@ -201,119 +167,6 @@ public sealed class GlossaryStore
 
         if (string.IsNullOrWhiteSpace(entry.Description))
             throw new InvalidDataException("Empty description in glossary file.");
-    }
-
-    private static string Normalize(string value)
-    {
-        var trimmed = value.Trim();
-        if (trimmed.Length == 0)
-            return string.Empty;
-
-        var lowered = trimmed.ToLowerInvariant();
-        var builder = new StringBuilder(lowered.Length);
-        var previousWasWhitespace = false;
-
-        foreach (var character in lowered)
-        {
-            var replacement = character switch
-            {
-                'ä' => "ae",
-                'ö' => "oe",
-                'ü' => "ue",
-                'ß' => "ss",
-                _ => null
-            };
-
-            if (replacement is not null)
-            {
-                foreach (var replacementCharacter in replacement)
-                    Append(replacementCharacter);
-
-                continue;
-            }
-
-            Append(character);
-        }
-
-        return builder.ToString();
-
-        void Append(char character)
-        {
-            if (char.IsWhiteSpace(character))
-            {
-                if (builder.Length == 0)
-                    return;
-
-                if (!previousWasWhitespace)
-                {
-                    builder.Append(' ');
-                    previousWasWhitespace = true;
-                }
-
-                return;
-            }
-
-            builder.Append(character);
-            previousWasWhitespace = false;
-        }
-    }
-
-    private static IReadOnlyList<string> Tokenize(string query)
-    {
-        var normalized = Normalize(query);
-        if (normalized.Length == 0)
-            return [];
-
-        var tokens = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var token in normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            tokens.Add(token);
-
-        return tokens.OrderBy(x => x, StringComparer.Ordinal).ToArray();
-    }
-
-    private static void ApplyFullQueryRules(
-        ref int score,
-        ref int matchCount,
-        string term,
-        string description,
-        string normalizedQuery)
-    {
-        if (term == normalizedQuery)
-            AddMatch(ref score, ref matchCount, 1000);
-        else if (term.Contains(normalizedQuery, StringComparison.Ordinal))
-            AddMatch(ref score, ref matchCount, 300);
-
-        if (description == normalizedQuery)
-            AddMatch(ref score, ref matchCount, 150);
-        else if (description.Contains(normalizedQuery, StringComparison.Ordinal))
-            AddMatch(ref score, ref matchCount, 80);
-    }
-
-    private static void ApplyTokenRules(
-        ref int score,
-        ref int matchCount,
-        string term,
-        string description,
-        IReadOnlyList<string> tokens)
-    {
-        foreach (var token in tokens)
-        {
-            if (term == token)
-                AddMatch(ref score, ref matchCount, 120);
-            else if (term.Contains(token, StringComparison.Ordinal))
-                AddMatch(ref score, ref matchCount, 40);
-
-            if (description == token)
-                AddMatch(ref score, ref matchCount, 30);
-            else if (description.Contains(token, StringComparison.Ordinal))
-                AddMatch(ref score, ref matchCount, 10);
-        }
-    }
-
-    private static void AddMatch(ref int score, ref int matchCount, int delta)
-    {
-        score += delta;
-        matchCount += 1;
     }
 }
 
