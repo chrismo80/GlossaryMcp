@@ -1,0 +1,39 @@
+using System.ComponentModel;
+using ModelContextProtocol.Server;
+using GlossaryMcp.Tools.Lexicon;
+
+namespace GlossaryMcp.Tools.Tools;
+
+public sealed record AddTermResponse(
+    int? TotalEntries = null,
+    LexiconEntry? ExistingEntry = null,
+    ErrorInfo? Error = null);
+
+[McpServerToolType]
+public sealed class AddTermTool(LexiconFileStore fileStore) : Tool
+{
+    [McpServerTool(Name = "add", Title = "Add", ReadOnly = false, Idempotent = false)]
+    [Description("Append one domain term with its description to the lexicon file and in-memory store.")]
+    public Task<AddTermResponse> Execute(
+        CancellationToken cancellationToken,
+        [Description("The domain term to add.")] string term,
+        [Description("Free-text description for the term.")] string description)
+    {
+        _ = cancellationToken;
+
+        if (string.IsNullOrWhiteSpace(term))
+            return Task.FromResult(new AddTermResponse(Error: new ErrorInfo("invalid term")));
+
+        if (string.IsNullOrWhiteSpace(description))
+            return Task.FromResult(new AddTermResponse(Error: new ErrorInfo("invalid description")));
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var result = fileStore.AddTerm(term, description, cancellationToken);
+
+        return Task.FromResult(new AddTermResponse(
+            TotalEntries: result.TotalEntries,
+            ExistingEntry: result.ExistingEntry,
+            Error: result.Error));
+    }
+}
