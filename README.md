@@ -1,3 +1,6 @@
+![plot](assets/icon.png)
+
+
 # GlossaryMcp
 
 > GlossaryMcp gives agents one small, explicit place for project vocabulary: a plain JSONL glossary under git.
