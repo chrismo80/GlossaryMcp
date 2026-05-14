@@ -265,17 +265,3 @@ Example for a local source checkout:
   }
 }
 ```
-
-## Development
-
-```bash
-export PATH="$PATH:/home/bob/.dotnet"
-dotnet build GlossaryMcp.sln -c Release
-dotnet test GlossaryMcp.sln --verbosity minimal
-```
-
-## Documentation
-
-- `docs/REQUIREMENTS.md`
-- `docs/DESIGN.md`
-- `docs/TDD_PLAN.md`
