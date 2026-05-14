@@ -18,8 +18,9 @@ public sealed class TextExtensionsTests
 
     [Theory]
     [InlineData("Batch Release", new[] { "batch", "release" })]
-    [InlineData("  a   b  ", new[] { "a", "b" })]
-    [InlineData("a a b b", new[] { "a", "b" })]
+    [InlineData("  alpha   beta  ", new[] { "alpha", "beta" })]
+    [InlineData("alpha alpha beta beta", new[] { "alpha", "beta" })]
+    [InlineData("  a   b  ", new string[] { })]
     public void TokenizeGlossary_returns_expected_tokens(string input, string[] expected)
     {
         input.TokenizeGlossary().Is(expected);

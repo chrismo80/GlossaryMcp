@@ -79,12 +79,12 @@ public sealed class GlossarySearchTests
     {
         IReadOnlyList<GlossaryEntry> entries =
         [
-            new("a", "a"),
-            new("b", "b"),
-            new("c", "c")
+            new("alpha", "alpha"),
+            new("bravo", "bravo"),
+            new("charlie", "charlie")
         ];
 
-        var results = entries.FindMatches("a b c", maxResults: 2);
+        var results = entries.FindMatches("alpha bravo charlie", maxResults: 2);
         results.Count.Is(2);
     }
 

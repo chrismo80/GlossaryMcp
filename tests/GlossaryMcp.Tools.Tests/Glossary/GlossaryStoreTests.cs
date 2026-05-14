@@ -145,11 +145,11 @@ public sealed class GlossaryStoreTests
         try
         {
             var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
-            _ = store.Add("a", "a");
-            _ = store.Add("b", "b");
-            _ = store.Add("c", "c");
+            _ = store.Add("alpha", "alpha");
+            _ = store.Add("bravo", "bravo");
+            _ = store.Add("charlie", "charlie");
 
-            var results = store.Find("a b c", maxResults: 2);
+            var results = store.Find("alpha bravo charlie", maxResults: 2);
 
             results.Count.Is(2);
         }
