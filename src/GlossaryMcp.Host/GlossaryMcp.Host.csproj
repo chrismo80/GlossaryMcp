@@ -14,7 +14,7 @@
     <PackageId>GlossaryMcp</PackageId>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>GlossaryMcp</ToolCommandName>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>chrismo80</Authors>
     <Description>MCP server for persistant memory.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
