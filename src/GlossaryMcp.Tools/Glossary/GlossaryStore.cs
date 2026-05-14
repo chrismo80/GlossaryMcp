@@ -123,6 +123,38 @@ public sealed class GlossaryStore
         }
     }
 
+    public DeleteTermResult Delete(string term, CancellationToken cancellationToken = default)
+    {
+        if (term is null)
+            throw new ArgumentNullException(nameof(term));
+
+        term = term.Trim();
+
+        if (term.Length == 0)
+            return DeleteTermResult.AsError("invalid term");
+
+        var key = term.NormalizeGlossary();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+        {
+            if (!_byNormalizedTerm.TryGetValue(key, out var existing))
+                return DeleteTermResult.AsError("term not found");
+
+            var updatedEntries = _entries.ToList();
+            var existingIndex = updatedEntries.FindIndex(entry => ReferenceEquals(entry, existing));
+            if (existingIndex < 0)
+                return DeleteTermResult.AsError("term not found");
+
+            updatedEntries.RemoveAt(existingIndex);
+
+            _file.RewriteAll(updatedEntries, cancellationToken);
+            ReplaceState(updatedEntries);
+
+            return DeleteTermResult.AsSuccess(_entries.Count, existing);
+        }
+    }
+
     public IReadOnlyList<GlossaryMatch> Find(string query, int maxResults = 10, CancellationToken cancellationToken = default)
     {
         if (query is null)
@@ -190,4 +222,13 @@ public sealed record EditTermResult(
 {
     public static EditTermResult AsSuccess(int totalEntries) => new(totalEntries, null);
     public static EditTermResult AsError(string message) => new(null, new ErrorInfo(message));
+}
+
+public sealed record DeleteTermResult(
+    int? TotalEntries,
+    GlossaryEntry? DeletedEntry,
+    ErrorInfo? Error)
+{
+    public static DeleteTermResult AsSuccess(int totalEntries, GlossaryEntry deletedEntry) => new(totalEntries, deletedEntry, null);
+    public static DeleteTermResult AsError(string message) => new(null, null, new ErrorInfo(message));
 }

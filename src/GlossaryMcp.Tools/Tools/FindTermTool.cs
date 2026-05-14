@@ -20,7 +20,7 @@ public sealed record FindTermResponse(
 public sealed class FindTermTool(GlossaryStore glossaryStore)
 {
     [McpServerTool(Name = "find", Title = "Find", ReadOnly = true, Idempotent = true)]
-    [Description("Find lexicon entries by matching the full query string and its whitespace-split words against terms and descriptions.")]
+    [Description("Find glossary entries by matching the full query string and its whitespace-split words against terms and descriptions.")]
     public Task<FindTermResponse> Execute(
         CancellationToken cancellationToken,
         [Description("Query string to search for.")] string query,

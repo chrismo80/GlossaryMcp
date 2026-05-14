@@ -13,11 +13,11 @@ public sealed record AddTermResponse(
 public sealed class AddTermTool(GlossaryStore glossaryStore)
 {
     [McpServerTool(Name = "add", Title = "Add", ReadOnly = false, Idempotent = false)]
-    [Description("Append one domain term with its description to the lexicon file and in-memory store.")]
+    [Description("Append one domain term with its description to the glossary.")]
     public Task<AddTermResponse> Execute(
         CancellationToken cancellationToken,
         [Description("The domain term to add.")] string term,
-        [Description("Free-text description for the term.")] string description)
+        [Description("Free-text description/meaning for the term.")] string description)
     {
         _ = cancellationToken;
 

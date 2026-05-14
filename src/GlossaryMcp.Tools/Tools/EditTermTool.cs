@@ -12,10 +12,10 @@ public sealed record EditTermResponse(
 public sealed class EditTermTool(GlossaryStore glossaryStore)
 {
     [McpServerTool(Name = "edit", Title = "Edit", ReadOnly = false, Idempotent = false)]
-    [Description("Replace the full description text for an existing term and rewrite the lexicon file.")]
+    [Description("Replace the full description text for an existing term.")]
     public Task<EditTermResponse> Execute(
         CancellationToken cancellationToken,
-        [Description("The term to edit (exact match after normalization).")] string term,
+        [Description("The term to edit.")] string term,
         [Description("The full new description text.")] string description)
     {
         _ = cancellationToken;

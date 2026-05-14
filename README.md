@@ -124,6 +124,7 @@ Bad vocabulary should fail loudly. Silent drift costs more later.
 | `find` | Search terms and descriptions with deterministic lexical ranking. |
 | `add` | Append a new term when it does not already exist. |
 | `edit` | Replace the full description of an existing term. |
+| `delete` | Remove a wrong or obsolete term. |
 
 The toolset stays intentionally small.
 There is no merge command and no partial edit command.
@@ -138,6 +139,7 @@ A typical agent loop looks like this:
 3. The agent uses the returned meaning for naming, design, review, or implementation.
 4. If the term is missing and worth keeping, the agent calls `add`.
 5. If the term exists but needs a sharper explanation, the agent calls `edit` with the full new description.
+6. If the term is wrong or obsolete, the agent calls `delete`.
 
 That keeps vocabulary close to the codebase and prevents repeated chat-only explanations.
 
@@ -241,6 +243,39 @@ Not found response:
 }
 ```
 
+### `delete`
+
+Removes one existing glossary entry.
+
+Input:
+
+- `term`
+
+The term must match an existing entry after normalization.
+Delete does not fuzzy-match and does not delete multiple entries.
+
+Success response:
+
+```json
+{
+  "totalEntries": 11,
+  "deletedEntry": {
+    "term": "Chargenfreigabe",
+    "description": "Fachliche Freigabe einer Charge vor Weiterverarbeitung oder Versand."
+  }
+}
+```
+
+Not found response:
+
+```json
+{
+  "error": {
+    "message": "term not found"
+  }
+}
+```
+
 ## Matching and Normalization
 
 GlossaryMcp normalizes terms for lookup and duplicate detection:
@@ -277,6 +312,7 @@ A good default is:
 - call `add` only for vocabulary that should survive future sessions
 - keep descriptions short, concrete, and useful at the call site
 - call `edit` when an existing description causes ambiguity
+- call `delete` when a term is wrong or obsolete
 - prefer canonical project language from the glossary when naming code
 
 Without that judgment, this is just a JSONL file.

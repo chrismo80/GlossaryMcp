@@ -159,6 +159,81 @@ public sealed class GlossaryStoreTests
         }
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Delete_validates_input(string term)
+    {
+        var path = CreateTempPath();
+
+        try
+        {
+            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
+
+            var result = store.Delete(term);
+
+            result.TotalEntries.IsNull();
+            result.DeletedEntry.IsNull();
+            result.Error.IsNotNull();
+            result.Error!.Message.Is("invalid term");
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
+    [Fact]
+    public void Delete_missing_term_returns_error()
+    {
+        var path = CreateTempPath();
+
+        try
+        {
+            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
+
+            var result = store.Delete("missing");
+
+            result.TotalEntries.IsNull();
+            result.DeletedEntry.IsNull();
+            result.Error.IsNotNull();
+            result.Error!.Message.Is("term not found");
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
+    [Fact]
+    public void Delete_existing_term_removes_entry_and_rewrites_file()
+    {
+        var path = CreateTempPath();
+
+        try
+        {
+            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
+            _ = store.Add("Chargenfreigabe", "deleted");
+            _ = store.Add("Batch Release", "kept");
+
+            var result = store.Delete("  CHARGENFREIGABE  ");
+
+            result.Error.IsNull();
+            result.TotalEntries.Is(1);
+            result.DeletedEntry.IsNotNull();
+            result.DeletedEntry!.Term.Is("Chargenfreigabe");
+            store.TryGetEntry("Chargenfreigabe", out _).IsFalse();
+            store.TryGetEntry("Batch Release", out var kept).IsTrue();
+            kept.IsNotNull();
+            kept!.Description.Is("kept");
+            File.ReadAllLines(path).Length.Is(1);
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
     [Fact]
     public void Duplicate_term_in_file_throws_on_load()
     {
