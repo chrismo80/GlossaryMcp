@@ -1,99 +1,163 @@
 # GlossaryMcp
 
-> GlossaryMcp gives coding agents one small, explicit place for project vocabulary: a plain JSONL lexicon under git.
+> GlossaryMcp gives agents one small, explicit place for project vocabulary: a plain JSONL glossary under git.
 
-GlossaryMcp is a minimal MCP server for domain terms.
-It is built for the stuff that keeps slowing agents down in real repos:
+A minimal Model Context Protocol server for domain terms.
 
-- what a term actually means
-- where two similar terms differ
-- which wording is canonical
-- which domain words should be written down before they turn into repeated chat context
+It is built for the words that slow agents down in real repositories:
 
-The design goal is deliberately narrow:
-**solve project vocabulary well with the smallest possible surface area.**
+- terms nobody outside the team knows
+- similar words that must not be mixed up
+- canonical wording for code, docs, issues, and reviews
+- domain knowledge that should live with the repo instead of chat history
 
 No vector store.
 No graph model.
 No database.
 No semantic search.
-Just a tiny lexicon an agent can read and update without ceremony.
 
-## Why it exists
+Just a small glossary an agent can read and update without ceremony.
 
-Most repo context tools try to be a whole knowledge base.
-That is useful sometimes, but it also makes simple things heavier than they need to be.
+## Get It as a .NET Tool
 
-A lot of day-to-day agent friction is more basic:
+[![NuGet](https://img.shields.io/nuget/v/GlossaryMcp.svg)](https://www.nuget.org/packages/GlossaryMcp/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-blue)](https://www.nuget.org/packages/GlossaryMcp/)
 
-- a repo has domain words nobody outside the team knows
-- those words matter for naming, design, code review, and bug fixing
-- the meaning is stable enough to persist
-- the retrieval problem is often lexical, not semantic
+### Installation
 
-GlossaryMcp focuses on exactly that layer.
-
-If an agent asks _"what does this term mean?"_ or needs to store a newly learned domain word, this repo should be enough.
-
-## What it is
-
-GlossaryMcp keeps all data in one file:
-
-```text
-glossary.jsonl
+```bash
+dotnet tool install -g GlossaryMcp
 ```
 
-Each line is one entry:
+### Update
+
+```bash
+dotnet tool update -g GlossaryMcp
+```
+
+## What It Is For
+
+Use GlossaryMcp when a repository has vocabulary that matters:
+
+- business terms
+- product language
+- process names
+- abbreviations
+- local naming conventions
+- words with domain-specific meaning
+
+The goal is narrow by design: make vocabulary explicit, reviewable, and easy to retrieve.
+
+It is not:
+
+- a memory system
+- a wiki
+- a knowledge graph
+- a document search engine
+- a replacement for README or architecture docs
+
+GlossaryMcp stores durable vocabulary. Nothing more.
+
+## Configuration
+
+By default, GlossaryMcp reads and writes `glossary.jsonl` in the current working directory.
+
+Startup options:
+
+- `--file <path>` stores the glossary at a fixed location
+
+Use an absolute path for `--file` when you want the glossary location to stay stable across launches.
+
+Example MCP config:
 
 ```json
-{"term":"Chargenfreigabe","description":"Fachliche Freigabe einer Charge vor Weiterverarbeitung oder Versand."}
+{
+  "mcp": {
+    "glossary": {
+      "type": "local",
+      "command": [
+        "glossarymcp",
+        "--file",
+        "/absolute/path/to/glossary.jsonl"
+      ]
+    }
+  }
+}
 ```
 
-Runtime model:
+If the file does not exist yet, GlossaryMcp starts with an empty glossary and creates the file on first write.
 
-- one JSONL file as source of truth
-- all entries loaded into RAM on startup
-- no indexing step
-- deterministic lexical matching
-- small tool responses
+## File Format
 
-That makes behavior easy to understand and easy to debug.
+The glossary file uses JSONL: one JSON object per line.
 
-## When it fits
+```jsonl
+{"term":"Chargenfreigabe","description":"Fachliche Freigabe einer Charge vor Weiterverarbeitung oder Versand."}
+{"term":"Sollbestand","description":"Geplanter oder erwarteter Bestand, gegen den der Istbestand verglichen wird."}
+```
 
-GlossaryMcp fits well when you want:
+Each entry has two fields:
 
-- a small repo-local lexicon for domain terms
-- deterministic lookup by exact words and phrases
-- a minimal write path for adding and refining definitions
-- project vocabulary under normal git review instead of hidden storage
-
-## Current tools
-
-| Tool | Purpose |
+| Field | Meaning |
 | --- | --- |
-| `find` | Search terms and descriptions with deterministic ranking. |
+| `term` | The canonical domain term. |
+| `description` | The full explanation the agent should use. |
+
+The file stays intentionally strict:
+
+- UTF-8 without BOM
+- empty lines are ignored
+- invalid JSON fails startup
+- empty `term` fails startup
+- empty `description` fails startup
+- duplicate terms fail startup after normalization
+
+Bad vocabulary should fail loudly. Silent drift costs more later.
+
+## Tools
+
+| Tool | Use it for |
+| --- | --- |
+| `find` | Search terms and descriptions with deterministic lexical ranking. |
 | `add` | Append a new term when it does not already exist. |
 | `edit` | Replace the full description of an existing term. |
 
-## Tool behavior
+The toolset stays intentionally small.
+There is no merge command and no partial edit command.
+Changes should stay explicit enough for git review.
+
+## How It Feels in Practice
+
+A typical agent loop looks like this:
+
+1. A repo-specific word appears.
+2. The agent calls `find` before guessing.
+3. The agent uses the returned meaning for naming, design, review, or implementation.
+4. If the term is missing and worth keeping, the agent calls `add`.
+5. If the term exists but needs a sharper explanation, the agent calls `edit` with the full new description.
+
+That keeps vocabulary close to the codebase and prevents repeated chat-only explanations.
+
+## Tool Details
 
 ### `find`
+
+Searches the full query string and its whitespace-split words against terms and descriptions.
 
 Input:
 
 - `query`
 - `maxResults` (default `10`)
 
-Behavior:
+Ranking favors:
 
-- matches the full query string
-- also matches whitespace-split query tokens
-- searches both `term` and `description`
-- ranks key matches above description matches
-- ranks exact matches above contains matches
+- exact term matches
+- term contains matches
+- exact description matches
+- description contains matches
+- entries that match more of the query
 
-Returns a small result list:
+Example response:
 
 ```json
 {
@@ -109,20 +173,20 @@ Returns a small result list:
 }
 ```
 
+Treat scores as ranking hints, not as stable business values.
+
 ### `add`
+
+Appends a new glossary entry.
 
 Input:
 
 - `term`
 - `description`
 
-Behavior:
+If the normalized term already exists, `add` returns the existing entry instead of writing a duplicate.
 
-- normalizes the term for exact identity checks
-- appends a new JSONL line only when the term does not already exist
-- returns the existing entry directly on exact duplicate
-
-Success shape:
+Success response:
 
 ```json
 {
@@ -130,7 +194,7 @@ Success shape:
 }
 ```
 
-Duplicate shape:
+Duplicate response:
 
 ```json
 {
@@ -146,18 +210,17 @@ Duplicate shape:
 
 ### `edit`
 
+Replaces the full description of an existing term.
+
 Input:
 
 - `term`
 - `description`
 
-Behavior:
+The term must match an existing entry after normalization.
+The original term spelling stays unchanged.
 
-- finds the existing term by normalized exact match
-- replaces the full description text
-- rewrites `glossary.jsonl` from the in-memory state
-
-Success shape:
+Success response:
 
 ```json
 {
@@ -165,7 +228,7 @@ Success shape:
 }
 ```
 
-Not found shape:
+Not found response:
 
 ```json
 {
@@ -175,93 +238,43 @@ Not found shape:
 }
 ```
 
-## Recommended agent workflow
+## Matching and Normalization
 
-GlossaryMcp is meant to stay mechanically simple.
-A good default loop is:
-
-1. call `find` when a repo-specific word appears
-2. continue the task using the returned meaning
-3. call `add` when a genuinely new domain word shows up
-4. if `add` returns `exists already`, inspect `existingEntry`
-5. if the description needs refinement, call `edit` with the full new text
-
-That keeps the write path explicit and avoids accidental hidden merges.
-
-## Matching and normalization
-
-Exact term identity uses normalization:
+GlossaryMcp normalizes terms for lookup and duplicate detection:
 
 - trim
 - lowercase invariant
 - collapse whitespace
-- German replacements: `ä -> ae`, `ö -> oe`, `ü -> ue`, `ß -> ss`
+- replace German characters: `ä -> ae`, `ö -> oe`, `ü -> ue`, `ß -> ss`
 
-So these count as the same term:
+These terms resolve to the same identity:
 
 - `Chargenfreigabe`
 - `chargenfreigabe`
 - `  CHARGENFREIGABE  `
 
-## File rules
+Descriptions keep their original text.
 
-`glossary.jsonl` is intentionally strict:
-
-- UTF-8 without BOM
-- empty lines are ignored
-- invalid JSON causes startup failure
-- empty `term` causes startup failure
-- empty `description` causes startup failure
-
-That keeps bad data visible instead of letting it drift.
-
-## Configuration
-
-Default file location:
-
-```text
-./glossary.jsonl
-```
-
-Startup option:
-
-```text
---file <path-to-glossary.jsonl>
-```
-
-If the file does not exist yet, GlossaryMcp starts with an empty in-memory store and creates the file on first write.
-
-## Run locally
+## Run Locally
 
 From source:
 
 ```bash
-export PATH="$PATH:/home/bob/.dotnet"
 cd /path/to/GlossaryMcp
-
 dotnet run --project src/GlossaryMcp.Host -c Release -- --file ./glossary.jsonl
 ```
 
-## Example MCP config
+## Prompting Matters
 
-Example for a local source checkout:
+GlossaryMcp works best when the agent knows when to use it.
 
-```json
-{
-  "mcpServers": {
-    "glossary": {
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "/absolute/path/to/GlossaryMcp/src/GlossaryMcp.Host",
-        "-c",
-        "Release",
-        "--",
-        "--file",
-        "/absolute/path/to/glossary.jsonl"
-      ]
-    }
-  }
-}
-```
+A good default is:
+
+- call `find` before guessing the meaning of a repo-specific term
+- call `add` only for vocabulary that should survive future sessions
+- keep descriptions short, concrete, and useful at the call site
+- call `edit` when an existing description causes ambiguity
+- prefer canonical project language from the glossary when naming code
+
+Without that judgment, this is just a JSONL file.
+With it, it becomes shared vocabulary.
