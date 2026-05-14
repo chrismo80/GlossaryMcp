@@ -95,8 +95,8 @@ If the file does not exist yet, GlossaryMcp starts with an empty glossary and cr
 The glossary file uses JSONL: one JSON object per line.
 
 ```jsonl
-{"term":"Chargenfreigabe","description":"Fachliche Freigabe einer Charge vor Weiterverarbeitung oder Versand."}
-{"term":"Sollbestand","description":"Geplanter oder erwarteter Bestand, gegen den der Istbestand verglichen wird."}
+{"term":"Batch Release","description":"Formal approval of a production batch before further processing or shipping."}
+{"term":"Target Stock","description":"Planned or expected inventory level used for comparison with actual stock."}
 ```
 
 Each entry has two fields:
@@ -169,8 +169,8 @@ Example response:
   "results": [
     {
       "entry": {
-        "term": "Chargenfreigabe",
-        "description": "Fachliche Freigabe einer Charge vor Weiterverarbeitung oder Versand."
+        "term": "Batch Release",
+        "description": "Formal approval of a production batch before further processing or shipping."
       },
       "score": 1123
     }
@@ -204,8 +204,8 @@ Duplicate response:
 ```json
 {
   "existingEntry": {
-    "term": "Chargenfreigabe",
-    "description": "Fachliche Freigabe einer Charge vor Weiterverarbeitung oder Versand."
+    "term": "Batch Release",
+    "description": "Formal approval of a production batch before further processing or shipping."
   },
   "error": {
     "message": "exists already"
@@ -260,8 +260,8 @@ Success response:
 {
   "totalEntries": 11,
   "deletedEntry": {
-    "term": "Chargenfreigabe",
-    "description": "Fachliche Freigabe einer Charge vor Weiterverarbeitung oder Versand."
+    "term": "Batch Release",
+    "description": "Formal approval of a production batch before further processing or shipping."
   }
 }
 ```
@@ -287,9 +287,9 @@ GlossaryMcp normalizes terms for lookup and duplicate detection:
 
 These terms resolve to the same identity:
 
-- `Chargenfreigabe`
-- `chargenfreigabe`
-- `  CHARGENFREIGABE  `
+- `Batch Release`
+- `batch release`
+- `  BATCH   RELEASE  `
 
 Descriptions keep their original text.
 
