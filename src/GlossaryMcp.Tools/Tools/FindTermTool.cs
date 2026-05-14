@@ -1,11 +1,11 @@
 using System.ComponentModel;
+using GlossaryMcp.Tools.Glossary;
 using ModelContextProtocol.Server;
-using GlossaryMcp.Tools.Lexicon;
 
 namespace GlossaryMcp.Tools.Tools;
 
 public sealed record FindTermMatch(
-    LexiconEntry Entry,
+    GlossaryEntry Entry,
     int Score);
 
 public sealed record FindTermResponse(
@@ -17,7 +17,7 @@ public sealed record FindTermResponse(
 }
 
 [McpServerToolType]
-public sealed class FindTermTool(LexiconFileStore fileStore) : Tool
+public sealed class FindTermTool(GlossaryStore glossaryStore) : Tool
 {
     [McpServerTool(Name = "find", Title = "Find", ReadOnly = true, Idempotent = true)]
     [Description("Find lexicon entries by matching the full query string and its whitespace-split words against terms and descriptions.")]
@@ -36,7 +36,7 @@ public sealed class FindTermTool(LexiconFileStore fileStore) : Tool
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var matches = fileStore.FindMatches(query, maxResults, cancellationToken);
+        var matches = glossaryStore.Find(query, maxResults, cancellationToken);
         var results = matches
             .Select(m => new FindTermMatch(m.Entry, m.Score))
             .ToArray();

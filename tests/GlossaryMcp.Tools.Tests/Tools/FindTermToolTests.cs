@@ -1,5 +1,6 @@
 using Is.Assertions;
-using GlossaryMcp.Tools.Lexicon;
+using GlossaryMcp.Tools.Glossary;
+using GlossaryMcp.Tools.Storage;
 using GlossaryMcp.Tools.Tools;
 using Xunit;
 
@@ -13,7 +14,7 @@ public sealed class FindTermToolTests
         var path = CreateTempPath();
         try
         {
-            var tool = new FindTermTool(new LexiconFileStore(path));
+            var tool = new FindTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
 
             var response = await tool.Execute(CancellationToken.None, "  ");
 
@@ -33,7 +34,7 @@ public sealed class FindTermToolTests
         var path = CreateTempPath();
         try
         {
-            var tool = new FindTermTool(new LexiconFileStore(path));
+            var tool = new FindTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
 
             var response = await tool.Execute(CancellationToken.None, "x", maxResults: 0);
 
@@ -52,9 +53,9 @@ public sealed class FindTermToolTests
         var path = CreateTempPath();
         try
         {
-            var store = new LexiconFileStore(path);
-            _ = store.AddTerm("Chargenfreigabe", "Fachliche Freigabe einer Charge.");
-            _ = store.AddTerm("Charge", "Losgröße.");
+            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
+            _ = store.Add("Chargenfreigabe", "Fachliche Freigabe einer Charge.");
+            _ = store.Add("Charge", "Losgröße.");
 
             var tool = new FindTermTool(store);
 
@@ -76,7 +77,7 @@ public sealed class FindTermToolTests
         var path = CreateTempPath();
         try
         {
-            var tool = new FindTermTool(new LexiconFileStore(path));
+            var tool = new FindTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
 
             using var cts = new CancellationTokenSource();
             cts.Cancel();

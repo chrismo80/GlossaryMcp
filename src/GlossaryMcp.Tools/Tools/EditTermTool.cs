@@ -1,6 +1,6 @@
 using System.ComponentModel;
+using GlossaryMcp.Tools.Glossary;
 using ModelContextProtocol.Server;
-using GlossaryMcp.Tools.Lexicon;
 
 namespace GlossaryMcp.Tools.Tools;
 
@@ -9,7 +9,7 @@ public sealed record EditTermResponse(
     ErrorInfo? Error = null);
 
 [McpServerToolType]
-public sealed class EditTermTool(LexiconFileStore fileStore) : Tool
+public sealed class EditTermTool(GlossaryStore glossaryStore) : Tool
 {
     [McpServerTool(Name = "edit", Title = "Edit", ReadOnly = false, Idempotent = false)]
     [Description("Replace the full description text for an existing term and rewrite the lexicon file.")]
@@ -28,7 +28,7 @@ public sealed class EditTermTool(LexiconFileStore fileStore) : Tool
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var result = fileStore.EditTerm(term, description, cancellationToken);
+        var result = glossaryStore.Edit(term, description, cancellationToken);
         return Task.FromResult(new EditTermResponse(
             TotalEntries: result.TotalEntries,
             Error: result.Error));

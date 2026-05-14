@@ -1,6 +1,7 @@
 using Is.Assertions;
 using System.Text;
-using GlossaryMcp.Tools.Lexicon;
+using GlossaryMcp.Tools.Glossary;
+using GlossaryMcp.Tools.Storage;
 using GlossaryMcp.Tools.Tools;
 using Xunit;
 
@@ -16,7 +17,7 @@ public sealed class AddTermToolTests
         var path = CreateTempPath();
         try
         {
-            var tool = new AddTermTool(new LexiconFileStore(path));
+            var tool = new AddTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
 
             var response = await tool.Execute(CancellationToken.None, " ", "x");
 
@@ -35,7 +36,7 @@ public sealed class AddTermToolTests
         var path = CreateTempPath();
         try
         {
-            var tool = new AddTermTool(new LexiconFileStore(path));
+            var tool = new AddTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
 
             var response = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "desc");
 
@@ -55,7 +56,7 @@ public sealed class AddTermToolTests
         var path = CreateTempPath();
         try
         {
-            var tool = new AddTermTool(new LexiconFileStore(path));
+            var tool = new AddTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
 
             _ = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "first");
             var second = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "second");

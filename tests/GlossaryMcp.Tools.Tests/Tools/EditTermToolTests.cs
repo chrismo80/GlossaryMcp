@@ -1,5 +1,6 @@
 using Is.Assertions;
-using GlossaryMcp.Tools.Lexicon;
+using GlossaryMcp.Tools.Glossary;
+using GlossaryMcp.Tools.Storage;
 using GlossaryMcp.Tools.Tools;
 using Xunit;
 
@@ -13,7 +14,7 @@ public sealed class EditTermToolTests
         var path = CreateTempPath();
         try
         {
-            var tool = new EditTermTool(new LexiconFileStore(path));
+            var tool = new EditTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
 
             var response = await tool.Execute(CancellationToken.None, "does not exist", "x");
 
@@ -32,8 +33,8 @@ public sealed class EditTermToolTests
         var path = CreateTempPath();
         try
         {
-            var store = new LexiconFileStore(path);
-            _ = store.AddTerm("Chargenfreigabe", "old");
+            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
+            _ = store.Add("Chargenfreigabe", "old");
 
             var tool = new EditTermTool(store);
 

@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using GlossaryMcp.Tools.Extensions;
-using GlossaryMcp.Tools.Lexicon;
+using GlossaryMcp.Tools.Glossary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Protocol;
@@ -21,7 +21,7 @@ public static class HostExtensions
     {
         var filePath = configuration["file"] ?? "./glossary.jsonl";
 
-        services.AddSingleton(_ => LexiconFileStore.Load(filePath));
+        services.AddSingleton(_ => GlossaryStore.Load(filePath));
         services.WithGlossaryMcp();
         services.AddMcpRuntime();
 
@@ -53,4 +53,3 @@ public static class HostExtensions
         return services;
     }
 }
-
