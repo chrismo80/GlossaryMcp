@@ -23,7 +23,7 @@
     <PackageOutputPath>../../.nupkg</PackageOutputPath>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>dotnet8;mcp;agent;ai;vibe;coding;glossary</PackageTags>
+    <PackageTags>mcp;agent;ai;vibe;coding;glossary</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\..\assets\icon.png"
