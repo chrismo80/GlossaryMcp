@@ -4,7 +4,7 @@ using ModelContextProtocol.Server;
 
 namespace GlossaryMcp.Tools.Extensions;
 
-public static class ServiceExtensions
+internal static class ServiceExtensions
 {
     extension(IServiceCollection services)
     {

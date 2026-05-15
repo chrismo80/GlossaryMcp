@@ -2,7 +2,7 @@ using System.Text;
 
 namespace GlossaryMcp.Tools.Glossary;
 
-public static class TextExtensions
+internal static class TextExtensions
 {
     extension(string value)
     {
@@ -71,8 +71,18 @@ public static class TextExtensions
             if (normalized.Length == 0)
                 return [];
 
+            return normalized.TokenizeNormalizedGlossary();
+        }
+
+        internal IReadOnlyList<string> TokenizeNormalizedGlossary()
+        {
+            ArgumentNullException.ThrowIfNull(value);
+
+            if (value.Length == 0)
+                return [];
+
             var tokens = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var token in normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var token in value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 tokens.Add(token);
 
             return tokens

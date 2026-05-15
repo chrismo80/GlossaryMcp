@@ -1,6 +1,6 @@
 namespace GlossaryMcp.Tools.Glossary;
 
-public static class GlossarySearch
+internal static class GlossarySearch
 {
     private const int DefaultMaxResults = 10;
 
@@ -14,10 +14,8 @@ public static class GlossarySearch
     private const int ExactDescriptionTokenScore = 30;
     private const int DescriptionContainsTokenScore = 10;
 
-    private const int MatchedRuleBonusScore = 1;
-
     public static IReadOnlyList<GlossaryMatch> FindMatches(
-        this IReadOnlyList<GlossaryEntry> entries,
+        this IReadOnlyList<SearchableGlossaryEntry> entries,
         string query,
         int maxResults = DefaultMaxResults,
         CancellationToken cancellationToken = default)
@@ -30,28 +28,24 @@ public static class GlossarySearch
         if (maxResults <= 0)
             return [];
 
-        var queryText = query.NormalizeGlossary();
-        if (queryText.Length == 0)
+        var normalizedQuery = query.NormalizeGlossary();
+        if (normalizedQuery.Length == 0)
             return [];
 
-        var queryTokens = query.TokenizeGlossary();
+        var queryTokens = normalizedQuery.TokenizeNormalizedGlossary();
         var matches = new List<GlossaryMatch>();
 
         foreach (var entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var termText = entry.Term.NormalizeGlossary();
-            var descriptionText = entry.Description.NormalizeGlossary();
-
             var rankingScore = 0;
-            var matchedRuleBonus = 0;
 
-            ApplyFullQueryRules(ref rankingScore, ref matchedRuleBonus, termText, descriptionText, queryText);
-            ApplyTokenRules(ref rankingScore, ref matchedRuleBonus, termText, descriptionText, queryTokens);
+            ApplyFullQueryRules(ref rankingScore, entry.NormalizedTerm, entry.NormalizedDescription, normalizedQuery);
+            ApplyTokenRules(ref rankingScore, entry.NormalizedTerm, entry.NormalizedDescription, queryTokens);
 
             if (rankingScore > 0)
-                matches.Add(new GlossaryMatch(entry, rankingScore + matchedRuleBonus));
+                matches.Add(new GlossaryMatch(entry.Entry, rankingScore));
         }
 
         return matches
@@ -64,23 +58,21 @@ public static class GlossarySearch
 
     private static void ApplyFullQueryRules(
         ref int rankingScore,
-        ref int matchedRuleBonus,
         string term,
         string description,
         string query)
     {
         if (term == query)
-            AddMatch(ref rankingScore, ref matchedRuleBonus, ExactTermQueryScore);
+            AddMatch(ref rankingScore, ExactTermQueryScore);
         else if (term.Contains(query, StringComparison.Ordinal))
-            AddMatch(ref rankingScore, ref matchedRuleBonus, TermContainsQueryScore);
+            AddMatch(ref rankingScore, TermContainsQueryScore);
 
         if (description.Contains(query, StringComparison.Ordinal))
-            AddMatch(ref rankingScore, ref matchedRuleBonus, DescriptionContainsQueryScore);
+            AddMatch(ref rankingScore, DescriptionContainsQueryScore);
     }
 
     private static void ApplyTokenRules(
         ref int rankingScore,
-        ref int matchedRuleBonus,
         string term,
         string description,
         IReadOnlyList<string> queryTokens)
@@ -88,20 +80,19 @@ public static class GlossarySearch
         foreach (var token in queryTokens)
         {
             if (term == token)
-                AddMatch(ref rankingScore, ref matchedRuleBonus, ExactTermTokenScore);
+                AddMatch(ref rankingScore, ExactTermTokenScore);
             else if (term.Contains(token, StringComparison.Ordinal))
-                AddMatch(ref rankingScore, ref matchedRuleBonus, TermContainsTokenScore);
+                AddMatch(ref rankingScore, TermContainsTokenScore);
 
             if (description == token)
-                AddMatch(ref rankingScore, ref matchedRuleBonus, ExactDescriptionTokenScore);
+                AddMatch(ref rankingScore, ExactDescriptionTokenScore);
             else if (description.Contains(token, StringComparison.Ordinal))
-                AddMatch(ref rankingScore, ref matchedRuleBonus, DescriptionContainsTokenScore);
+                AddMatch(ref rankingScore, DescriptionContainsTokenScore);
         }
     }
 
-    private static void AddMatch(ref int rankingScore, ref int matchedRuleBonus, int ruleScore)
+    private static void AddMatch(ref int rankingScore, int ruleScore)
     {
         rankingScore += ruleScore;
-        matchedRuleBonus += MatchedRuleBonusScore;
     }
 }

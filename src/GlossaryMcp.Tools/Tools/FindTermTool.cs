@@ -1,24 +1,35 @@
 using System.ComponentModel;
 using GlossaryMcp.Tools.Glossary;
+using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
 
 namespace GlossaryMcp.Tools.Tools;
 
 public sealed record FindTermMatch(
-    GlossaryEntry Entry,
+    GlossaryTerm Entry,
     int Score);
 
 public sealed record FindTermResponse(
     IReadOnlyList<FindTermMatch> Results,
-    ErrorInfo? Error = null)
+    ToolError? Error = null)
 {
     public static FindTermResponse AsError(string message)
-        => new([], new ErrorInfo(message));
+        => new([], new ToolError(message));
 }
 
 [McpServerToolType]
-public sealed class FindTermTool(GlossaryStore glossaryStore)
+public sealed class FindTermTool
 {
+    private readonly GlossaryStore _glossaryStore;
+
+    public FindTermTool(IServiceProvider services)
+        : this(services.GetRequiredService<GlossaryStore>())
+    {
+    }
+
+    internal FindTermTool(GlossaryStore glossaryStore)
+        => _glossaryStore = glossaryStore;
+
     [McpServerTool(Name = "find", Title = "Find", ReadOnly = true, Idempotent = true)]
     [Description("Find glossary entries by matching the full query string and its whitespace-split words against terms and descriptions.")]
     public Task<FindTermResponse> Execute(
@@ -36,9 +47,9 @@ public sealed class FindTermTool(GlossaryStore glossaryStore)
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var matches = glossaryStore.Find(query, maxResults, cancellationToken);
+        var matches = _glossaryStore.Find(query, maxResults, cancellationToken);
         var results = matches
-            .Select(m => new FindTermMatch(m.Entry, m.Score))
+            .Select(m => new FindTermMatch(GlossaryTerm.From(m.Entry), m.Score))
             .ToArray();
 
         return Task.FromResult(new FindTermResponse(results));

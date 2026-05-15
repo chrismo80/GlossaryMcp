@@ -96,6 +96,27 @@ public sealed class GlossaryStoreTests
     }
 
     [Fact]
+    public void Edit_existing_term_updates_search_state()
+    {
+        var path = CreateTempPath();
+
+        try
+        {
+            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
+            _ = store.Add("Chargenfreigabe", "obsoleteword");
+
+            _ = store.Edit("Chargenfreigabe", "freshword");
+
+            store.Find("freshword").Single().Entry.Term.Is("Chargenfreigabe");
+            store.Find("obsoleteword").IsEmpty();
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
+    [Fact]
     public void Edit_missing_term_returns_error()
     {
         var path = CreateTempPath();

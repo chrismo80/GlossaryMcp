@@ -2,13 +2,13 @@ using GlossaryMcp.Tools.Storage;
 
 namespace GlossaryMcp.Tools.Glossary;
 
-public sealed class GlossaryStore
+internal sealed class GlossaryStore
 {
     private readonly Lock _sync = new();
     private readonly JsonlFile<GlossaryEntry> _file;
 
-    private List<GlossaryEntry> _entries = [];
-    private Dictionary<string, GlossaryEntry> _byNormalizedTerm = new(StringComparer.Ordinal);
+    private List<SearchableGlossaryEntry> _entries = [];
+    private Dictionary<string, SearchableGlossaryEntry> _byNormalizedTerm = new(StringComparer.Ordinal);
 
     public GlossaryStore(JsonlFile<GlossaryEntry> file)
     {
@@ -33,7 +33,7 @@ public sealed class GlossaryStore
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_sync)
-            return _entries.ToArray();
+            return _entries.Select(entry => entry.Entry).ToArray();
     }
 
     public bool TryGetEntry(string term, out GlossaryEntry? entry, CancellationToken cancellationToken = default)
@@ -45,7 +45,16 @@ public sealed class GlossaryStore
         var key = term.NormalizeGlossary();
 
         lock (_sync)
-            return _byNormalizedTerm.TryGetValue(key, out entry);
+        {
+            if (_byNormalizedTerm.TryGetValue(key, out var searchableEntry))
+            {
+                entry = searchableEntry.Entry;
+                return true;
+            }
+
+            entry = null;
+            return false;
+        }
     }
 
     public AddTermResult Add(string term, string description, CancellationToken cancellationToken = default)
@@ -67,13 +76,14 @@ public sealed class GlossaryStore
         lock (_sync)
         {
             if (_byNormalizedTerm.TryGetValue(key, out var existing))
-                return AddTermResult.AsExistsAlready(existing);
+                return AddTermResult.AsExistsAlready(existing.Entry);
 
             var entry = new GlossaryEntry(term, description);
+            var searchableEntry = SearchableGlossaryEntry.From(entry);
 
             _file.Append(entry, cancellationToken);
-            _entries.Add(entry);
-            _byNormalizedTerm[key] = entry;
+            _entries.Add(searchableEntry);
+            _byNormalizedTerm[key] = searchableEntry;
 
             return AddTermResult.AsSuccess(_entries.Count);
         }
@@ -108,8 +118,8 @@ public sealed class GlossaryStore
                 if (!ReferenceEquals(updatedEntries[index], existing))
                     continue;
 
-                updatedEntries[index] = new GlossaryEntry(existing.Term, description);
-                _file.RewriteAll(updatedEntries, cancellationToken);
+                updatedEntries[index] = SearchableGlossaryEntry.From(new GlossaryEntry(existing.Entry.Term, description));
+                _file.RewriteAll(updatedEntries.Select(entry => entry.Entry).ToArray(), cancellationToken);
                 ReplaceState(updatedEntries);
                 return EditTermResult.AsSuccess(_entries.Count);
             }
@@ -142,10 +152,10 @@ public sealed class GlossaryStore
 
             updatedEntries.RemoveAt(existingIndex);
 
-            _file.RewriteAll(updatedEntries, cancellationToken);
+            _file.RewriteAll(updatedEntries.Select(entry => entry.Entry).ToArray(), cancellationToken);
             ReplaceState(updatedEntries);
 
-            return DeleteTermResult.AsSuccess(_entries.Count, existing);
+            return DeleteTermResult.AsSuccess(_entries.Count, existing.Entry);
         }
     }
 
@@ -155,7 +165,7 @@ public sealed class GlossaryStore
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        GlossaryEntry[] snapshot;
+        SearchableGlossaryEntry[] snapshot;
         lock (_sync)
             snapshot = _entries.ToArray();
 
@@ -164,16 +174,28 @@ public sealed class GlossaryStore
 
     private void ReplaceState(IReadOnlyList<GlossaryEntry> entries)
     {
-        var newEntries = new List<GlossaryEntry>(entries.Count);
-        var newByNormalizedTerm = new Dictionary<string, GlossaryEntry>(StringComparer.Ordinal);
+        var searchableEntries = new SearchableGlossaryEntry[entries.Count];
+
+        for (var index = 0; index < entries.Count; index++)
+        {
+            Validate(entries[index]);
+            searchableEntries[index] = SearchableGlossaryEntry.From(entries[index]);
+        }
+
+        ReplaceState(searchableEntries);
+    }
+
+    private void ReplaceState(IReadOnlyList<SearchableGlossaryEntry> entries)
+    {
+        var newEntries = new List<SearchableGlossaryEntry>(entries.Count);
+        var newByNormalizedTerm = new Dictionary<string, SearchableGlossaryEntry>(StringComparer.Ordinal);
 
         foreach (var entry in entries)
         {
-            Validate(entry);
+            Validate(entry.Entry);
 
-            var key = entry.Term.NormalizeGlossary();
-            if (!newByNormalizedTerm.TryAdd(key, entry))
-                throw new InvalidDataException($"Duplicate term '{entry.Term}'.");
+            if (!newByNormalizedTerm.TryAdd(entry.NormalizedTerm, entry))
+                throw new InvalidDataException($"Duplicate term '{entry.Entry.Term}'.");
 
             newEntries.Add(entry);
         }
@@ -195,11 +217,11 @@ public sealed class GlossaryStore
     }
 }
 
-public sealed record GlossaryMatch(
+internal sealed record GlossaryMatch(
     GlossaryEntry Entry,
     int Score);
 
-public sealed record AddTermResult(
+internal sealed record AddTermResult(
     int? TotalEntries,
     GlossaryEntry? ExistingEntry,
     ErrorInfo? Error)
@@ -209,7 +231,7 @@ public sealed record AddTermResult(
     public static AddTermResult AsError(string message) => new(null, null, new ErrorInfo(message));
 }
 
-public sealed record EditTermResult(
+internal sealed record EditTermResult(
     int? TotalEntries,
     ErrorInfo? Error)
 {
@@ -217,7 +239,7 @@ public sealed record EditTermResult(
     public static EditTermResult AsError(string message) => new(null, new ErrorInfo(message));
 }
 
-public sealed record DeleteTermResult(
+internal sealed record DeleteTermResult(
     int? TotalEntries,
     GlossaryEntry? DeletedEntry,
     ErrorInfo? Error)

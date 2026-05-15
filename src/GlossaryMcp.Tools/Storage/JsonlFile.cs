@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace GlossaryMcp.Tools.Storage;
 
-public sealed class JsonlFile<T>
+internal sealed class JsonlFile<T>
 {
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
