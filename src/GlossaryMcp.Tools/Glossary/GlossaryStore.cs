@@ -4,7 +4,7 @@ namespace GlossaryMcp.Tools.Glossary;
 
 public sealed class GlossaryStore
 {
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private readonly JsonlFile<GlossaryEntry> _file;
 
     private List<GlossaryEntry> _entries = [];
@@ -38,8 +38,7 @@ public sealed class GlossaryStore
 
     public bool TryGetEntry(string term, out GlossaryEntry? entry, CancellationToken cancellationToken = default)
     {
-        if (term is null)
-            throw new ArgumentNullException(nameof(term));
+        ArgumentNullException.ThrowIfNull(term);
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -51,10 +50,8 @@ public sealed class GlossaryStore
 
     public AddTermResult Add(string term, string description, CancellationToken cancellationToken = default)
     {
-        if (term is null)
-            throw new ArgumentNullException(nameof(term));
-        if (description is null)
-            throw new ArgumentNullException(nameof(description));
+        ArgumentNullException.ThrowIfNull(term);
+        ArgumentNullException.ThrowIfNull(description);
 
         term = term.Trim();
         description = description.Trim();
@@ -84,10 +81,8 @@ public sealed class GlossaryStore
 
     public EditTermResult Edit(string term, string description, CancellationToken cancellationToken = default)
     {
-        if (term is null)
-            throw new ArgumentNullException(nameof(term));
-        if (description is null)
-            throw new ArgumentNullException(nameof(description));
+        ArgumentNullException.ThrowIfNull(term);
+        ArgumentNullException.ThrowIfNull(description);
 
         term = term.Trim();
         description = description.Trim();
@@ -125,8 +120,7 @@ public sealed class GlossaryStore
 
     public DeleteTermResult Delete(string term, CancellationToken cancellationToken = default)
     {
-        if (term is null)
-            throw new ArgumentNullException(nameof(term));
+        ArgumentNullException.ThrowIfNull(term);
 
         term = term.Trim();
 
@@ -157,8 +151,7 @@ public sealed class GlossaryStore
 
     public IReadOnlyList<GlossaryMatch> Find(string query, int maxResults = 10, CancellationToken cancellationToken = default)
     {
-        if (query is null)
-            throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(query);
 
         cancellationToken.ThrowIfCancellationRequested();
 

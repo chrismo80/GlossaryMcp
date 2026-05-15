@@ -76,7 +76,7 @@ public static class TextExtensions
                 tokens.Add(token);
 
             return tokens
-                .Where(token => token.Length > 3)
+                .Where(token => token.Length > 2)
                 .OrderBy(x => x, StringComparer.Ordinal).ToArray();
         }
     }

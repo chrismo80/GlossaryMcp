@@ -8,10 +8,8 @@ public static class GlossarySearch
         int maxResults = 10,
         CancellationToken cancellationToken = default)
     {
-        if (entries is null)
-            throw new ArgumentNullException(nameof(entries));
-        if (query is null)
-            throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentNullException.ThrowIfNull(query);
 
         cancellationToken.ThrowIfCancellationRequested();
 
