@@ -5,18 +5,16 @@ public static class GlossarySearch
     private const int DefaultMaxResults = 10;
 
     private const int ExactTermQueryScore = 1000;
-    private const int PartialTermQueryScore = 300;
-
-    private const int ExactDescriptionQueryScore = 150;
-    private const int PartialDescriptionQueryScore = 80;
+    private const int TermContainsQueryScore = 300;
+    private const int DescriptionContainsQueryScore = 80;
 
     private const int ExactTermTokenScore = 120;
-    private const int PartialTermTokenScore = 40;
+    private const int TermContainsTokenScore = 40;
 
     private const int ExactDescriptionTokenScore = 30;
-    private const int PartialDescriptionTokenScore = 10;
+    private const int DescriptionContainsTokenScore = 10;
 
-    private const int MatchCountTieBreakerScore = 1;
+    private const int MatchedRuleBonusScore = 1;
 
     public static IReadOnlyList<GlossaryMatch> FindMatches(
         this IReadOnlyList<GlossaryEntry> entries,
@@ -32,28 +30,28 @@ public static class GlossarySearch
         if (maxResults <= 0)
             return [];
 
-        var normalizedQuery = query.NormalizeGlossary();
-        if (normalizedQuery.Length == 0)
+        var queryText = query.NormalizeGlossary();
+        if (queryText.Length == 0)
             return [];
 
-        var tokens = query.TokenizeGlossary();
+        var queryTokens = query.TokenizeGlossary();
         var matches = new List<GlossaryMatch>();
 
         foreach (var entry in entries)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var normalizedTerm = entry.Term.NormalizeGlossary();
-            var normalizedDescription = entry.Description.NormalizeGlossary();
+            var termText = entry.Term.NormalizeGlossary();
+            var descriptionText = entry.Description.NormalizeGlossary();
 
-            var score = 0;
-            var matchCount = 0;
+            var rankingScore = 0;
+            var matchedRuleBonus = 0;
 
-            ApplyFullQueryRules(ref score, ref matchCount, normalizedTerm, normalizedDescription, normalizedQuery);
-            ApplyTokenRules(ref score, ref matchCount, normalizedTerm, normalizedDescription, tokens);
+            ApplyFullQueryRules(ref rankingScore, ref matchedRuleBonus, termText, descriptionText, queryText);
+            ApplyTokenRules(ref rankingScore, ref matchedRuleBonus, termText, descriptionText, queryTokens);
 
-            if (score > 0)
-                matches.Add(new GlossaryMatch(entry, score + matchCount));
+            if (rankingScore > 0)
+                matches.Add(new GlossaryMatch(entry, rankingScore + matchedRuleBonus));
         }
 
         return matches
@@ -65,47 +63,45 @@ public static class GlossarySearch
     }
 
     private static void ApplyFullQueryRules(
-        ref int score,
-        ref int matchCount,
+        ref int rankingScore,
+        ref int matchedRuleBonus,
         string term,
         string description,
-        string normalizedQuery)
+        string query)
     {
-        if (term == normalizedQuery)
-            AddMatch(ref score, ref matchCount, ExactTermQueryScore);
-        else if (term.Contains(normalizedQuery, StringComparison.Ordinal))
-            AddMatch(ref score, ref matchCount, PartialTermQueryScore);
+        if (term == query)
+            AddMatch(ref rankingScore, ref matchedRuleBonus, ExactTermQueryScore);
+        else if (term.Contains(query, StringComparison.Ordinal))
+            AddMatch(ref rankingScore, ref matchedRuleBonus, TermContainsQueryScore);
 
-        if (description == normalizedQuery)
-            AddMatch(ref score, ref matchCount, ExactDescriptionQueryScore);
-        else if (description.Contains(normalizedQuery, StringComparison.Ordinal))
-            AddMatch(ref score, ref matchCount, PartialDescriptionQueryScore);
+        if (description.Contains(query, StringComparison.Ordinal))
+            AddMatch(ref rankingScore, ref matchedRuleBonus, DescriptionContainsQueryScore);
     }
 
     private static void ApplyTokenRules(
-        ref int score,
-        ref int matchCount,
+        ref int rankingScore,
+        ref int matchedRuleBonus,
         string term,
         string description,
-        IReadOnlyList<string> tokens)
+        IReadOnlyList<string> queryTokens)
     {
-        foreach (var token in tokens)
+        foreach (var token in queryTokens)
         {
             if (term == token)
-                AddMatch(ref score, ref matchCount, ExactTermTokenScore);
+                AddMatch(ref rankingScore, ref matchedRuleBonus, ExactTermTokenScore);
             else if (term.Contains(token, StringComparison.Ordinal))
-                AddMatch(ref score, ref matchCount, PartialTermTokenScore);
+                AddMatch(ref rankingScore, ref matchedRuleBonus, TermContainsTokenScore);
 
             if (description == token)
-                AddMatch(ref score, ref matchCount, ExactDescriptionTokenScore);
+                AddMatch(ref rankingScore, ref matchedRuleBonus, ExactDescriptionTokenScore);
             else if (description.Contains(token, StringComparison.Ordinal))
-                AddMatch(ref score, ref matchCount, PartialDescriptionTokenScore);
+                AddMatch(ref rankingScore, ref matchedRuleBonus, DescriptionContainsTokenScore);
         }
     }
 
-    private static void AddMatch(ref int score, ref int matchCount, int delta)
+    private static void AddMatch(ref int rankingScore, ref int matchedRuleBonus, int ruleScore)
     {
-        score += delta;
-        matchCount += MatchCountTieBreakerScore;
+        rankingScore += ruleScore;
+        matchedRuleBonus += MatchedRuleBonusScore;
     }
 }
