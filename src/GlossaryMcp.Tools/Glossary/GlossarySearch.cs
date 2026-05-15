@@ -5,10 +5,8 @@ internal static class GlossarySearch
     private const int TermWeight = 10;
 
     private const int FullTextWeight = 10;
-    private const int TokenWeight = 5;
 
-    private const int ExactMatchWeight = 10;
-    private const int ContainsMatchWeight = 3;
+    private const int ExactMatchWeight = 3;
 
     private const int MatchLengthWeight = 2;
 
@@ -59,21 +57,21 @@ internal static class GlossarySearch
         yield return text.Score(query) * FullTextWeight;
 
         foreach (var token in queryTokens)
-            yield return text.Score(token) * TokenWeight;
+            yield return text.Score(token);
 
         foreach (var token in text.TokenizeNormalizedGlossary())
-            yield return token.Score(query) * TokenWeight;
+            yield return token.Score(query);
     }
 
     private static int Score(this string text, string query)
     {
-        int baseScore = query.Length * MatchLengthWeight;
+        var baseScore = query.Length * MatchLengthWeight;
 
         if (text == query)
             return baseScore * ExactMatchWeight;
 
         if (text.Contains(query, StringComparison.Ordinal))
-            return baseScore * ContainsMatchWeight;
+            return baseScore;
 
         return 0;
     }

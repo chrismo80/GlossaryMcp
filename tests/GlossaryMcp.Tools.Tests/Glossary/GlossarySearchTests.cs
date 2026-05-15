@@ -73,7 +73,7 @@ public sealed class GlossarySearchTests
 
         var score = entries.FindMatches("batch release").Single().Score;
 
-        score.Is(14800);
+        score.Is(8040);
     }
 
     [Fact]
