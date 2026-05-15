@@ -22,6 +22,9 @@ internal static class TextExtensions
             {
                 var replacement = character switch
                 {
+                    ',' => " ",
+                    '.' => " ",
+                    ';' => " ",
                     'ä' => "ae",
                     'ö' => "oe",
                     'ü' => "ue",
@@ -40,7 +43,7 @@ internal static class TextExtensions
                 Append(character);
             }
 
-            return builder.ToString();
+            return builder.ToString().TrimEnd();
 
             void Append(char character)
             {
