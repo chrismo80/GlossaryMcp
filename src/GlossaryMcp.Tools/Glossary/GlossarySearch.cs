@@ -29,11 +29,13 @@ internal static class GlossarySearch
         if (normalizedQuery.Length == 0)
             return [];
 
+        var queryTokens = normalizedQuery.TokenizeNormalizedGlossary();
+
         return entries
             .Select(entry =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                return new GlossaryMatch(entry.Entry, entry.Score(normalizedQuery));
+                return new GlossaryMatch(entry.Entry, entry.Score(normalizedQuery, queryTokens));
             })
             .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
@@ -43,16 +45,19 @@ internal static class GlossarySearch
             .ToArray();
     }
 
-    private static int Score(this SearchableGlossaryEntry entry, string query)
+    private static int Score(this SearchableGlossaryEntry entry, string query, IReadOnlyList<string> queryTokens)
     {
         return
-            entry.NormalizedTerm.Scores(query).Sum() * TermScore +
-            entry.NormalizedDescription.Scores(query).Sum();
+            entry.NormalizedTerm.Scores(query, queryTokens).Sum() * TermScore +
+            entry.NormalizedDescription.Scores(query, queryTokens).Sum();
     }
 
-    private static IEnumerable<int> Scores(this string text, string query)
+    private static IEnumerable<int> Scores(this string text, string query, IReadOnlyList<string> queryTokens)
     {
         yield return text.Score(query) * FullScore;
+
+        foreach (var token in queryTokens)
+            yield return text.Score(token) * TokenScore;
 
         foreach (var token in text.TokenizeNormalizedGlossary())
             yield return token.Score(query) * TokenScore;

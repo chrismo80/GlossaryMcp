@@ -67,13 +67,13 @@ public sealed class GlossarySearchTests
     }
 
     [Fact]
-    public void Score_contains_only_ranking_rules()
+    public void Score_combines_full_query_and_query_tokens()
     {
         var entries = Searchable(new GlossaryEntry("batch release", "x"));
 
         var score = entries.FindMatches("batch release").Single().Score;
 
-        score.Is(1080);
+        score.Is(14800);
     }
 
     [Fact]
