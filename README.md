@@ -19,7 +19,8 @@ No graph model.
 No database.
 No semantic search.
 
-Just a small glossary an agent can read and update without ceremony.
+GlossaryMcp is not just a word list.
+It is a lightweight, term-addressable project context layer for durable domain vocabulary, architecture concepts, system boundaries, data flows, and local conventions.
 
 ## Get It as a .NET Tool
 
@@ -308,12 +309,20 @@ GlossaryMcp works best when the agent knows when to use it.
 
 A good default is:
 
-- call `find` before guessing the meaning of a repo-specific term
-- call `add` only for vocabulary that should survive future sessions
-- keep descriptions short, concrete, and useful at the call site
-- call `edit` when an existing description causes ambiguity
-- call `delete` when a term is wrong or obsolete
-- prefer canonical project language from the glossary when naming code
+> Use the `glossary` tools before guessing repository-specific vocabulary.
+>
+> Call `find` when a task mentions an unfamiliar or ambiguous project-specific term, data flow, system concept, boundary, process, or convention.
+> 
+> Prefer canonical wording from the glossary when naming code, writing docs, creating issues, or reviewing changes.
+>
+> Call `add` only for durable domain-specific or architecture-specific concepts when you have a precise understanding of their meaning.
+> 
+> Use descriptions to capture stable meaning, responsibilities, relationships, data flow, and system context.
+> 
+> Call `edit` only when an existing description is wrong, ambiguous, incomplete, or outdated.
+> 
+> Call `delete` only when a term is wrong or obsolete.
+> 
+> Do not use the `glossary` as chat memory, transient notes, todos, or an unstructured wiki.
 
-Without that judgment, this is just a JSONL file.
 With it, it becomes shared vocabulary.
