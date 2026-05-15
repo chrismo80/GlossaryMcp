@@ -16,7 +16,7 @@
     <ToolCommandName>GlossaryMcp</ToolCommandName>
     <Version>0.2.0</Version>
     <Authors>chrismo80</Authors>
-    <Description>MCP server for persistant memory.</Description>
+    <Description>MCP server for domain-specific knowledge base.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/chrismo80/GlossaryMcp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chrismo80/GlossaryMcp</RepositoryUrl>
