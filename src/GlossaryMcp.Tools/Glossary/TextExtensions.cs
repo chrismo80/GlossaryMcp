@@ -4,6 +4,17 @@ namespace GlossaryMcp.Tools.Glossary;
 
 internal static class TextExtensions
 {
+    private static readonly Dictionary<char, string> replacements = new()
+    {
+        { ',', " " },
+        { '.', " " },
+        { ';', " " },
+        { 'ä', "ae" },
+        { 'ö', "oe" },
+        { 'ü', "ue" },
+        { 'ß', "ss" },
+    };
+
     extension(string value)
     {
         public string NormalizeGlossary()
@@ -20,17 +31,7 @@ internal static class TextExtensions
 
             foreach (var character in lowered)
             {
-                var replacement = character switch
-                {
-                    ',' => " ",
-                    '.' => " ",
-                    ';' => " ",
-                    'ä' => "ae",
-                    'ö' => "oe",
-                    'ü' => "ue",
-                    'ß' => "ss",
-                    _ => null
-                };
+                replacements.TryGetValue(character, out var replacement);
 
                 if (replacement is not null)
                 {
