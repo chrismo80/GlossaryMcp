@@ -17,12 +17,15 @@ public sealed class TextExtensionsTests
     }
 
     [Theory]
+    [InlineData("Test, Setup.", new[] { "test", "setup" })]
     [InlineData("Batch Release", new[] { "batch", "release" })]
     [InlineData("  alpha   beta  ", new[] { "alpha", "beta" })]
     [InlineData("alpha alpha beta beta", new[] { "alpha", "beta" })]
     [InlineData("  a   b  ", new string[] { })]
     public void TokenizeGlossary_returns_expected_tokens(string input, string[] expected)
     {
+        var result = input.TokenizeGlossary();
+
         input.TokenizeGlossary().Is(expected);
     }
 }

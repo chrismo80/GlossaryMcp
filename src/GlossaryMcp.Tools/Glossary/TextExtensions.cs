@@ -90,7 +90,7 @@ internal static class TextExtensions
 
             return tokens
                 .Where(token => token.Length > 2)
-                .OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                .ToArray();
         }
     }
 }
