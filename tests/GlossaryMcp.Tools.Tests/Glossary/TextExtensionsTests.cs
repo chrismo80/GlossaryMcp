@@ -8,6 +8,7 @@ public sealed class TextExtensionsTests
 {
     [Theory]
     [InlineData("  abc  ", "abc")]
+    [InlineData("Test, Setup.", "test setup" )]
     [InlineData("AbC", "abc")]
     [InlineData("a   b\t\n  c", "a b c")]
     [InlineData("ä ö ü ß", "ae oe ue ss")]
@@ -17,13 +18,12 @@ public sealed class TextExtensionsTests
     }
 
     [Theory]
-    [InlineData("Test, Setup.", new[] { "test", "setup" })]
-    [InlineData("Batch Release", new[] { "batch", "release" })]
+    [InlineData("Batch Release", new[] { "Batch", "Release" })]
     [InlineData("  alpha   beta  ", new[] { "alpha", "beta" })]
     [InlineData("alpha alpha beta beta", new[] { "alpha", "beta" })]
     [InlineData("  a   b  ", new string[] { })]
     public void TokenizeGlossary_returns_expected_tokens(string input, string[] expected)
     {
-        input.NormalizeGlossary().TokenizeGlossary().Is(expected);
+        input.TokenizeGlossary().Is(expected);
     }
 }
