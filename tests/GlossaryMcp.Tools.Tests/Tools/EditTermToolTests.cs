@@ -1,6 +1,4 @@
 using Is.Assertions;
-using GlossaryMcp.Tools.Glossary;
-using GlossaryMcp.Tools.Storage;
 using GlossaryMcp.Tools.Tools;
 using Xunit;
 
@@ -11,65 +9,26 @@ public sealed class EditTermToolTests
     [Fact]
     public async Task Missing_term_returns_error()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var tool = new EditTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
+        using var glossary = TestGlossary.Create();
+        var tool = new EditTermTool(glossary.Store);
 
-            var response = await tool.Execute(CancellationToken.None, "does not exist", "x");
+        var response = await tool.Execute(CancellationToken.None, "does not exist", "x");
 
-            response.Error.IsNotNull();
-            response.Error!.Message.Is("term not found");
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
+        response.Error.IsNotNull();
+        response.Error!.Message.Is("term not found");
     }
 
     [Fact]
     public async Task Success_returns_totalEntries_only()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
-            _ = store.Add("Chargenfreigabe", "old");
+        using var glossary = TestGlossary.Create();
+        glossary.Store.Add("Chargenfreigabe", "old");
 
-            var tool = new EditTermTool(store);
+        var tool = new EditTermTool(glossary.Store);
 
-            var response = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "new");
+        var response = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "new");
 
-            response.TotalEntries.Is(1);
-            response.Error.IsNull();
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
-    }
-
-    private static string CreateTempPath()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "GlossaryMcpTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        return Path.Combine(dir, "glossary.jsonl");
-    }
-
-    private static void SafeDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-
-            var dir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
-                Directory.Delete(dir, recursive: true);
-        }
-        catch
-        {
-            // best-effort cleanup
-        }
+        response.TotalEntries.Is(1);
+        response.Error.IsNull();
     }
 }

@@ -1,7 +1,5 @@
 using Is.Assertions;
 using System.Text;
-using GlossaryMcp.Tools.Glossary;
-using GlossaryMcp.Tools.Storage;
 using GlossaryMcp.Tools.Tools;
 using Xunit;
 
@@ -14,89 +12,44 @@ public sealed class AddTermToolTests
     [Fact]
     public async Task Validates_input()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var tool = new AddTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
+        using var glossary = TestGlossary.Create();
+        var tool = new AddTermTool(glossary.Store);
 
-            var response = await tool.Execute(CancellationToken.None, " ", "x");
+        var response = await tool.Execute(CancellationToken.None, " ", "x");
 
-            response.Error.IsNotNull();
-            response.Error!.Message.Is("invalid term");
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
+        response.Error.IsNotNull();
+        response.Error!.Message.Is("invalid term");
     }
 
     [Fact]
     public async Task Success_returns_totalEntries_only()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var tool = new AddTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
+        using var glossary = TestGlossary.Create();
+        var tool = new AddTermTool(glossary.Store);
 
-            var response = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "desc");
+        var response = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "desc");
 
-            response.TotalEntries.Is(1);
-            response.Error.IsNull();
-            response.ExistingEntry.IsNull();
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
+        response.TotalEntries.Is(1);
+        response.Error.IsNull();
+        response.ExistingEntry.IsNull();
     }
 
     [Fact]
     public async Task Existing_term_returns_existingEntry_and_error()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var tool = new AddTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
+        using var glossary = TestGlossary.Create();
+        var tool = new AddTermTool(glossary.Store);
 
-            _ = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "first");
-            var second = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "second");
+        await tool.Execute(CancellationToken.None, "Chargenfreigabe", "first");
+        var second = await tool.Execute(CancellationToken.None, "Chargenfreigabe", "second");
 
-            second.TotalEntries.IsNull();
-            second.Error.IsNotNull();
-            second.Error!.Message.Is("exists already");
-            second.ExistingEntry.IsNotNull();
-            second.ExistingEntry!.Description.Is("first");
+        second.TotalEntries.IsNull();
+        second.Error.IsNotNull();
+        second.Error!.Message.Is("exists already");
+        second.ExistingEntry.IsNotNull();
+        second.ExistingEntry!.Description.Is("first");
 
-            var lines = File.ReadAllLines(path, Utf8NoBom);
-            lines.Count().Is(1);
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
-    }
-
-    private static string CreateTempPath()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "GlossaryMcpTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        return Path.Combine(dir, "glossary.jsonl");
-    }
-
-    private static void SafeDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-
-            var dir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
-                Directory.Delete(dir, recursive: true);
-        }
-        catch
-        {
-            // best-effort cleanup
-        }
+        var lines = File.ReadAllLines(glossary.Path, Utf8NoBom);
+        lines.Count().Is(1);
     }
 }

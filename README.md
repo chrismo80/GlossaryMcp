@@ -123,6 +123,7 @@ Bad vocabulary should fail loudly. Silent drift costs more later.
 | Tool | Use it for |
 | --- | --- |
 | `find` | Search terms and descriptions with deterministic lexical ranking. |
+| `map` | List terms and the other terms whose descriptions mention them. |
 | `add` | Append a new term when it does not already exist. |
 | `edit` | Replace the full description of an existing term. |
 | `delete` | Remove a wrong or obsolete term. |
@@ -138,9 +139,10 @@ A typical agent loop looks like this:
 1. A repo-specific word appears.
 2. The agent calls `find` before guessing.
 3. The agent uses the returned meaning for naming, design, review, or implementation.
-4. If the term is missing and worth keeping, the agent calls `add`.
-5. If the term exists but needs a sharper explanation, the agent calls `edit` with the full new description.
-6. If the term is wrong or obsolete, the agent calls `delete`.
+4. The agent calls `map` when nearby terms may also matter.
+5. If the term is missing and worth keeping, the agent calls `add`.
+6. If the term exists but needs a sharper explanation, the agent calls `edit` with the full new description.
+7. If the term is wrong or obsolete, the agent calls `delete`.
 
 That keeps vocabulary close to the codebase and prevents repeated chat-only explanations.
 
@@ -180,6 +182,44 @@ Example response:
 ```
 
 Treat scores as ranking hints, not as stable business values.
+
+### `map`
+
+Lists glossary terms and the other terms whose descriptions mention them.
+
+Input:
+
+- `term` (optional)
+
+Without `term`, `map` lists every glossary term.
+With `term`, `map` lists only that glossary term.
+
+Matching uses normalized containment:
+
+```csharp
+normalizedDescription.Contains(normalizedTerm)
+```
+
+Self matches are ignored.
+Descriptions are not returned.
+
+Example response:
+
+```json
+{
+  "terms": [
+    {
+      "term": "Production Batch",
+      "mentionedIn": [
+        "Batch Release",
+        "Batch Record"
+      ]
+    }
+  ]
+}
+```
+
+Use this when one term is known and nearby glossary terms may also be worth reading.
 
 ### `add`
 
@@ -284,6 +324,7 @@ GlossaryMcp normalizes terms for lookup and duplicate detection:
 - trim
 - lowercase invariant
 - collapse whitespace
+- replace `,`, `.`, and `;` with spaces
 - replace German characters: `ä -> ae`, `ö -> oe`, `ü -> ue`, `ß -> ss`
 
 These terms resolve to the same identity:

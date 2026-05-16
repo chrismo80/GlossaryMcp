@@ -1,6 +1,4 @@
 using Is.Assertions;
-using GlossaryMcp.Tools.Glossary;
-using GlossaryMcp.Tools.Storage;
 using GlossaryMcp.Tools.Tools;
 using Xunit;
 
@@ -11,107 +9,54 @@ public sealed class FindTermToolTests
     [Fact]
     public async Task Invalid_query_returns_error()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var tool = new FindTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
+        using var glossary = TestGlossary.Create();
+        var tool = new FindTermTool(glossary.Store);
 
-            var response = await tool.Execute(CancellationToken.None, "  ");
+        var response = await tool.Execute(CancellationToken.None, "  ");
 
-            response.Error.IsNotNull();
-            response.Error!.Message.Is("invalid query");
-            response.Results.IsEmpty();
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
+        response.Error.IsNotNull();
+        response.Error!.Message.Is("invalid query");
+        response.Results.IsEmpty();
     }
 
     [Fact]
     public async Task MaxResults_leq_zero_returns_empty_list()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var tool = new FindTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
+        using var glossary = TestGlossary.Create();
+        var tool = new FindTermTool(glossary.Store);
 
-            var response = await tool.Execute(CancellationToken.None, "x", maxResults: 0);
+        var response = await tool.Execute(CancellationToken.None, "x", maxResults: 0);
 
-            response.Error.IsNull();
-            response.Results.IsEmpty();
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
+        response.Error.IsNull();
+        response.Results.IsEmpty();
     }
 
     [Fact]
     public async Task Returns_matches()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var store = new GlossaryStore(new JsonlFile<GlossaryEntry>(path));
-            _ = store.Add("Chargenfreigabe", "Fachliche Freigabe einer Charge.");
-            _ = store.Add("Charge", "Losgröße.");
+        using var glossary = TestGlossary.Create();
+        glossary.Store.Add("Chargenfreigabe", "Fachliche Freigabe einer Charge.");
+        glossary.Store.Add("Charge", "Losgröße.");
 
-            var tool = new FindTermTool(store);
+        var tool = new FindTermTool(glossary.Store);
 
-            var response = await tool.Execute(CancellationToken.None, "Chargenfreigabe");
+        var response = await tool.Execute(CancellationToken.None, "Chargenfreigabe");
 
-            response.Error.IsNull();
-            response.Results.Count.Is(1);
-            response.Results[0].Entry.Term.Is("Chargenfreigabe");
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
+        response.Error.IsNull();
+        response.Results.Count.Is(1);
+        response.Results[0].Entry.Term.Is("Chargenfreigabe");
     }
 
     [Fact]
     public async Task Canceled_token_throws()
     {
-        var path = CreateTempPath();
-        try
-        {
-            var tool = new FindTermTool(new GlossaryStore(new JsonlFile<GlossaryEntry>(path)));
+        using var glossary = TestGlossary.Create();
+        var tool = new FindTermTool(glossary.Store);
 
-            using var cts = new CancellationTokenSource();
-            cts.Cancel();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
 
-            Func<Task> action = async () => await tool.Execute(cts.Token, "x");
-            action.IsThrowing<OperationCanceledException>();
-        }
-        finally
-        {
-            SafeDelete(path);
-        }
-    }
-
-    private static string CreateTempPath()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), "GlossaryMcpTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        return Path.Combine(dir, "glossary.jsonl");
-    }
-
-    private static void SafeDelete(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-
-            var dir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
-                Directory.Delete(dir, recursive: true);
-        }
-        catch
-        {
-            // best-effort cleanup
-        }
+        Func<Task> action = async () => await tool.Execute(cts.Token, "x");
+        action.IsThrowing<OperationCanceledException>();
     }
 }

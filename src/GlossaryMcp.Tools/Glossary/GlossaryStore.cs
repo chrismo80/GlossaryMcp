@@ -172,6 +172,52 @@ internal sealed class GlossaryStore
         return snapshot.FindMatches(query, maxResults, cancellationToken);
     }
 
+    public IReadOnlyList<GlossaryTermMap> Map(string? term = null, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        SearchableGlossaryEntry[] entries;
+        lock (_sync)
+            entries = _entries.ToArray();
+
+        var targets = entries;
+        if (term is not null)
+        {
+            var normalizedTerm = term.NormalizeGlossary();
+            targets = entries
+                .Where(entry => entry.NormalizedTerm == normalizedTerm)
+                .ToArray();
+        }
+
+        return targets
+            .Select(target => MapMentions(target, entries, cancellationToken))
+            .ToArray();
+    }
+
+    private static GlossaryTermMap MapMentions(
+        SearchableGlossaryEntry target,
+        IReadOnlyList<SearchableGlossaryEntry> entries,
+        CancellationToken cancellationToken)
+    {
+        var mentionedIn = entries
+            .Where(source => Mentions(source, target, cancellationToken))
+            .Select(source => source.Entry.Term)
+            .ToArray();
+
+        return new GlossaryTermMap(target.Entry.Term, mentionedIn);
+    }
+
+    private static bool Mentions(
+        SearchableGlossaryEntry source,
+        SearchableGlossaryEntry target,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return source.NormalizedTerm != target.NormalizedTerm &&
+               source.NormalizedDescription.Contains(target.NormalizedTerm, StringComparison.Ordinal);
+    }
+
     private void ReplaceState(IReadOnlyList<GlossaryEntry> entries)
     {
         var searchableEntries = new SearchableGlossaryEntry[entries.Count];
@@ -220,6 +266,10 @@ internal sealed class GlossaryStore
 internal sealed record GlossaryMatch(
     GlossaryEntry Entry,
     int Score);
+
+internal sealed record GlossaryTermMap(
+    string Term,
+    IReadOnlyList<string> MentionedIn);
 
 internal sealed record AddTermResult(
     int? TotalEntries,
