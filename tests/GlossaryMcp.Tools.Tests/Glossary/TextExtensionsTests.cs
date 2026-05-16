@@ -24,8 +24,6 @@ public sealed class TextExtensionsTests
     [InlineData("  a   b  ", new string[] { })]
     public void TokenizeGlossary_returns_expected_tokens(string input, string[] expected)
     {
-        var result = input.TokenizeGlossary();
-
-        input.TokenizeGlossary().Is(expected);
+        input.NormalizeGlossary().TokenizeGlossary().Is(expected);
     }
 }

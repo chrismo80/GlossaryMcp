@@ -67,18 +67,7 @@ internal static class TextExtensions
             }
         }
 
-        public IReadOnlyList<string> TokenizeGlossary()
-        {
-            ArgumentNullException.ThrowIfNull(value);
-
-            var normalized = value.NormalizeGlossary();
-            if (normalized.Length == 0)
-                return [];
-
-            return normalized.TokenizeNormalizedGlossary();
-        }
-
-        internal IReadOnlyList<string> TokenizeNormalizedGlossary()
+        internal IReadOnlyList<string> TokenizeGlossary()
         {
             ArgumentNullException.ThrowIfNull(value);
 

@@ -26,7 +26,7 @@ internal static class GlossarySearch
         if (normalizedQuery.Length == 0)
             return [];
 
-        var queryTokens = normalizedQuery.TokenizeNormalizedGlossary();
+        var queryTokens = normalizedQuery.TokenizeGlossary();
 
         return entries
             .Select(entry =>
@@ -58,7 +58,7 @@ internal static class GlossarySearch
             foreach (var token in queryTokens)
                 yield return text.Score(token);
 
-            foreach (var token in text.TokenizeNormalizedGlossary())
+            foreach (var token in text.TokenizeGlossary())
                 yield return token.Score(query);
         }
 
