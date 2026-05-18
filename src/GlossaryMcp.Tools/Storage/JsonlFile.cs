@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace GlossaryMcp.Tools.Storage;
@@ -18,6 +19,7 @@ internal sealed class JsonlFile<T>
         Path = path;
         _json = json ?? new JsonSerializerOptions
         {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
     }
